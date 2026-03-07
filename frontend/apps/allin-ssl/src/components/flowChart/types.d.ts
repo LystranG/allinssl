@@ -12,6 +12,7 @@ import {
   START,
   UPLOAD,
   DEFAULT,
+  WAIT,
 } from "./lib/alias";
 import type { FormRules } from "naive-ui";
 import type { Component } from "vue";
@@ -123,7 +124,8 @@ export type NodeNum =
   | typeof NOTIFY // 通知节点（业务）
   | typeof APPLY // 申请节点（业务）
   | typeof PRIVATE_CA // 私有CA节点（业务）
-  | typeof DEPLOY; // 部署节点（业务）
+  | typeof DEPLOY // 部署节点（业务）
+  | typeof WAIT; // 等待节点（业务）
 
 // 节点配置映射
 export type NodeOptions = {
@@ -145,6 +147,7 @@ export type NodeOptions = {
     BaseNodeData & { type: typeof PRIVATE_CA }
   >;
   [DEPLOY]: () => BaseRenderNodeOptions<BaseNodeData & { type: typeof DEPLOY }>;
+  [WAIT]: () => BaseRenderNodeOptions<BaseNodeData & { type: typeof WAIT }>;
 };
 
 // 基础节点配置
@@ -393,6 +396,12 @@ interface NotifyNodeConfig {
   subject: string;
   body: string;
   skip: boolean; // 当结果来源为跳过状态时，跳过/继续发送通知，true:跳过，false:继续
+}
+
+// 定义等待节点配置类型
+export interface WaitNodeConfig {
+  duration: number; // 等待时间
+  unit: 'second' | 'minute' | 'hour'; // 时间单位
 }
 
 // 定义上传节点配置类型

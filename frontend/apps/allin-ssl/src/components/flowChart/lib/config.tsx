@@ -11,6 +11,7 @@ import {
   EXECUTE_RESULT_BRANCH,
   EXECUTE_RESULT_CONDITION,
   START,
+  WAIT,
 } from "./alias";
 import {
   BaseRenderNodeOptions,
@@ -212,6 +213,24 @@ nodeOptions[PRIVATE_CA] = () =>
         validity_unit: "day",
         cn: "",
         san: "",
+      },
+      childNode: null,
+    },
+  });
+
+// 等待节点
+nodeOptions[WAIT] = () =>
+  baseOptions({
+    title: { name: "等待" },
+    icon: { name: WAIT },
+    operateNode: { sort: 6 },
+    defaultNode: {
+      id: uuidv4(),
+      name: "等待",
+      type: WAIT,
+      config: {
+        duration: 60,
+        unit: "second",
       },
       childNode: null,
     },

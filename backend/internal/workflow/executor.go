@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 // var executors map[string]func(map[string]any) (any, error)
@@ -30,6 +31,8 @@ func Executors(exec string, params map[string]any) (any, error) {
 		return notify(params)
 	case "private_ca":
 		return privateCa(params)
+	case "wait":
+		return waitNode(params)
 	default:
 		return nil, nil
 	}
@@ -217,7 +220,6 @@ func upload(params map[string]any) (any, error) {
 }
 
 func notify(params map[string]any) (any, error) {
-	// fmt.Println("通知:", params)
 	logger := params["logger"].(*public.Logger)
 	logger.Info("=============发送通知=============")
 
@@ -256,4 +258,64 @@ func notify(params map[string]any) (any, error) {
 	}
 	logger.Info("=============发送成功=============")
 	return fmt.Sprintf("通知到: %s", params["message"]), nil
+}
+
+func waitNode(params map[string]any) (any, error) {
+	logger := params["logger"].(*public.Logger)
+	logger.Info("=============等待=============")
+
+	var duration float64
+	if v, ok := params["duration"]; ok {
+		switch val := v.(type) {
+		case float64:
+			duration = val
+		case int:
+			duration = float64(val)
+		case string:
+			parsed, err := strconv.ParseFloat(val, 64)
+			if err != nil {
+				logger.Error("等待时间格式错误: " + err.Error())
+				logger.Info("=============等待失败=============")
+				return nil, fmt.Errorf("等待时间格式错误: %v", err)
+			}
+			duration = parsed
+		}
+	}
+
+	if duration <= 0 {
+		logger.Error("等待时间必须大于0")
+		logger.Info("=============等待失败=============")
+		return nil, errors.New("等待时间必须大于0")
+	}
+
+	unit := "second"
+	if v, ok := params["unit"]; ok {
+		if s, ok := v.(string); ok && s != "" {
+			unit = s
+		}
+	}
+
+	var sleepDuration time.Duration
+	switch unit {
+	case "minute":
+		sleepDuration = time.Duration(duration) * time.Minute
+	case "hour":
+		sleepDuration = time.Duration(duration) * time.Hour
+	default:
+		sleepDuration = time.Duration(duration) * time.Second
+	}
+
+	unitNames := map[string]string{
+		"second": "秒",
+		"minute": "分钟",
+		"hour":   "小时",
+	}
+	unitName := unitNames[unit]
+	if unitName == "" {
+		unitName = unit
+	}
+	logger.Info(fmt.Sprintf("等待 %v %s", duration, unitName))
+	time.Sleep(sleepDuration)
+	logger.Info("=============等待结束=============")
+	return nil, nil
 }
