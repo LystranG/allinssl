@@ -57,6 +57,7 @@ import type {
   WebhookAccessConfig,
   SpaceshipAccessConfig,
   BTDomainAccessConfig,
+  AcmeDnsAccessConfig,
 } from "@/types/access";
 import type { VNode, Ref } from "vue";
 import { testAccess, getPlugins } from "@/api/access";
@@ -1368,6 +1369,25 @@ export const useApiFormController = (
           })
         );
         break;
+      case "acmedns":
+        items.push(
+          useFormInput("ACME-DNS 服务地址", "config.api_base", {
+            placeholder: "https://auth.acme-dns.io",
+            allowInput: noSideSpace,
+          }, { showRequireMark: false }),
+          useFormCustom(() => (
+            <div class="mt-2 p-4 bg-[var(--form-log-bg)] rounded-md text-lg">
+              <div class="font-medium mb-2">使用说明：</div>
+              <ol class="list-decimal ml-4 space-y-1">
+                <li>保存配置后，在申请证书时首次使用该授权，系统会自动在 ACME-DNS 服务器上注册账号。</li>
+                <li>注册成功后，工作流日志会输出需要添加的 CNAME 记录，请按提示在您的 DNS 中完成配置。</li>
+                <li>完成 CNAME 配置后，重新运行工作流即可正常申请证书。</li>
+              </ol>
+              <div class="mt-2 text-color5">默认使用公共服务 https://auth.acme-dns.io，也可填入自建的 ACME-DNS 服务地址。</div>
+            </div>
+          ))
+        );
+        break;
       case "plugin":
         // 插件名称选择器
         items.push(
@@ -1741,6 +1761,11 @@ export const useApiFormController = (
 						account_id: "",
 					} as BTDomainAccessConfig;
 					break;
+        case "acmedns":
+          param.value.config = {
+            api_base: "",
+          } as AcmeDnsAccessConfig;
+          break;
         case "plugin":
           param.value.config = {
             name: pluginList.value[0]?.value || "",

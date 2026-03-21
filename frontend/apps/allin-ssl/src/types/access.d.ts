@@ -66,6 +66,7 @@ export interface AddAccessParams<
     | WebhookAccessConfig
     | SpaceshipAccessConfig
     | BTDomainAccessConfig
+    | AcmeDnsAccessConfig
 > {
   name: string;
   type: string;
@@ -104,6 +105,7 @@ export interface UpdateAccessParams<
     | WebhookAccessConfig
     | SpaceshipAccessConfig
     | BTDomainAccessConfig
+    | AcmeDnsAccessConfig
 > extends AddAccessParams<T> {
   id: string;
 }
@@ -329,6 +331,11 @@ export interface BTDomainAccessConfig {
   access_key: string;
   secret_key: string;
   account_id: string;
+}
+
+export interface AcmeDnsAccessConfig {
+  api_base: string;
+  accounts?: string; // JSON of domain -> account mappings, managed by the backend
 }
 
 /** 删除授权请求参数 */

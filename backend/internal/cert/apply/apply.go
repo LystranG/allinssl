@@ -3,6 +3,7 @@ package apply
 import (
 	"ALLinSSL/backend/internal/access"
 	"ALLinSSL/backend/internal/cert"
+	"ALLinSSL/backend/internal/cert/apply/lego/acmedns"
 	"ALLinSSL/backend/internal/cert/apply/lego/bt"
 	"ALLinSSL/backend/internal/cert/apply/lego/jdcloud"
 	"ALLinSSL/backend/internal/cert/apply/lego/webhook"
@@ -75,6 +76,39 @@ func GetSqlite() (*public.Sqlite, error) {
 	}
 	s.TableName = "accounts"
 	return s, nil
+}
+
+func createAcmeDNSProvider(providerID string, providerData map[string]any, providerConfig map[string]string, maxWait time.Duration) (challenge.Provider, error) {
+	cfg := acmedns.NewDefaultConfig()
+	if apiBase := providerConfig["api_base"]; apiBase != "" {
+		cfg.APIBase = apiBase
+	}
+	cfg.PropagationTimeout = maxWait
+
+	if accountsJSON := providerConfig["accounts"]; accountsJSON != "" {
+		if err := json.Unmarshal([]byte(accountsJSON), &cfg.Accounts); err != nil {
+			return nil, fmt.Errorf("acme-dns: 解析账号信息失败: %w", err)
+		}
+	}
+
+	name, ok := providerData["name"].(string)
+	if !ok || name == "" {
+		return nil, fmt.Errorf("acme-dns: 无法获取授权配置名称")
+	}
+	cfg.UpdateAccounts = func(accounts map[string]acmedns.Account) error {
+		accountsJSON, err := json.Marshal(accounts)
+		if err != nil {
+			return err
+		}
+		providerConfig["accounts"] = string(accountsJSON)
+		configJSON, err := json.Marshal(providerConfig)
+		if err != nil {
+			return err
+		}
+		return access.UpdateAccess(providerID, string(configJSON), name)
+	}
+
+	return acmedns.NewDNSProviderConfig(cfg)
 }
 
 func GetDNSProvider(providerName string, creds map[string]string, httpClient *http.Client, maxWait time.Duration) (challenge.Provider, error) {
@@ -788,7 +822,12 @@ func Apply(cfg map[string]any, logger *public.Logger) (map[string]any, error) {
 	}
 
 	// DNS 验证
-	provider, err := GetDNSProvider(providerStr, providerConfig, httpClient, maxWait)
+	var provider challenge.Provider
+	if providerStr == "acmedns" {
+		provider, err = createAcmeDNSProvider(providerID, providerData, providerConfig, maxWait)
+	} else {
+		provider, err = GetDNSProvider(providerStr, providerConfig, httpClient, maxWait)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("创建 DNS provider 失败: %v", err)
 	}
